@@ -1,3 +1,57 @@
+<?php
+function connectToDatabase() {
+    $servername = "localhost";
+    $username = "root"; // Your DB username
+    $password = ""; // Your DB password
+    $dbname = "login_demo"; // Your database name
+
+    $conn = new mysqli($servername, $username, $password, $dbname);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+    return $conn;
+}
+
+function loginUser($email, $password) {
+    $conn = connectToDatabase();
+
+    // Sanitize email input
+    $email = $conn->real_escape_string($email);
+
+    // Check for user in database
+    $sql = "SELECT * FROM users WHERE email = ?";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return ['success' => false, 'message' => 'Database query error: ' . $conn->error];
+    }
+
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 1) {
+        $user = $result->fetch_assoc();
+        if (password_verify($password, $user['password'])) {
+            // Successful login
+            $stmt->close();
+            $conn->close();
+            return ['success' => true, 'users' => $user];
+        } else {
+            // Invalid password
+            $stmt->close();
+            $conn->close();
+            return ['success' => false, 'message' => 'Invalid password.'];
+        }
+    } else {
+        // User not found
+        $stmt->close();
+        $conn->close();
+        return ['success' => false, 'message' => 'User not found.'];
+    }
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
